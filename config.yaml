@@ -1,0 +1,47 @@
+retrieval:
+  - component: query_transformer
+    implementation: MultiQuery
+  - component: router
+    implementation: SimpleRouter
+  - component: retriever
+    implementation: LcChromaRetriever
+    resources:
+      embedding_model: text_embedding_3_large
+    args:
+      top_k: 3
+      index_path: "db/chroma_db"
+      collection_name: "catbank_text_embedding_3_large"
+#  - component: web_searcher
+#    implementation: MockWebSearcher
+#  - component: relational_db_retriever
+#    implementation: MockRelationalDbRetriever
+  - component: prompt_builder
+    implementation: SimplePromptBuilder
+    resources:
+      prompt: system_short_answer
+  - component: answer_generator
+    implementation: LcAnswerGenerator
+    resources:
+      llm: chat_gpt_4o
+  - component: evaluator
+    implementation: LcLlmJudge
+    resources:
+      llm: chat_gpt_4o
+      prompt: system_eval
+
+index:
+  - component: document_loader
+    implementation: TextLoader
+    args:
+      directory: "data/catbank"
+  - component: chunker
+    implementation: FixedSizeChunker
+    args:
+        chunk_size: 100
+  - component: vector_store
+    implementation: LcChromaStore
+    resources:
+      embedding_model: text_embedding_3_large
+    args:
+      persist_directory: "db/chroma_db"
+      collection_name: "catbank_text_embedding_3_large"
