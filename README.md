@@ -25,9 +25,12 @@ This project implements a modular retrieval-augmented generation (RAG) pipeline 
         ```
 
 3. **Install the required packages:**
+    ```sh
+    pip install uv
+    ```
 
     ```sh
-    pip install -r requirements.txt
+    uv sync
     ```
 
 ## Running the Application
