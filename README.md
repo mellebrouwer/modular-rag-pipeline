@@ -38,7 +38,7 @@ This project implements a modular retrieval-augmented generation (RAG) pipeline 
 To run the application using Streamlit:
 
 ```sh
-streamlit run ui.py
+streamlit run ui/app.py
 ```
 
 ## Running Tests
