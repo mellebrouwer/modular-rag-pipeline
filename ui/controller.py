@@ -2,62 +2,63 @@ import asyncio
 import importlib
 import inspect
 import os
-import re
 import time
-
-import yaml
 
 from component_config import ComponentConfig
 from src.models import Data, Query
 from src.pipeline import Pipeline
+from ui.utilities import camel_to_snake, find_class_name_in_file, load_qa_file
 
 
 class Controller:
+    """
+    Controller class to manage pipeline operations, component introspection, and resource loading for Streamlit UI
+
+    Responsibilities:
+    - Dynamically introspect components and their implementations.
+    - Load configurations and Q&A files.
+    - Run indexing and retrieval pipelines.
+    - Evaluate pipeline results using Q&A pairs.
+    """
     def __init__(self):
-        self.base_path = "src/components"
+        self.component_path = "src/components"
         self.resources_path = "src/resources"
 
     def get_component_implementations(self, component_name: str) -> list[str]:
         """
-        Introspect src/components/{component_type}s folder to get valid classes.
-        Omits __init__ and base_* files, then extracts class names.
+        Get all valid implementations of a given component type.
+
+        Args:
+            component_name (str): The name of the component type.
+
+        Returns:
+            list[str]: A list of class names representing the available implementations.
         """
-        folder_path = os.path.join(self.base_path, f"{component_name}s")
-        if not os.path.isdir(folder_path):
+        module_name = os.path.join(self.component_path, f"{component_name}s")
+        if not os.path.isdir(module_name):
             return []
 
         names = []
-        for fname in os.listdir(folder_path):
+        for fname in os.listdir(module_name):
             if fname.startswith("__") or fname.startswith("base_") or not fname.endswith(".py"):
                 continue
-            class_name = self._find_class_name_in_file(os.path.join(folder_path, fname))
+            class_name = find_class_name_in_file(os.path.join(module_name, fname))
             if class_name:
                 names.append(class_name)
         return names
 
-    def get_constructor_params(self, component: str, implementation: str) -> dict:
+    def get_resource_implementations(self, resource_key: str) -> list[str]:
         """
-        Dynamically inspect the constructor to determine required params and types.
-        Return a dict: { 'param_name': 'param_type' }.
-        """
-        snake_name = self._camel_to_snake(implementation)
-        module_name = f"src.components.{component}s.{snake_name}"
-        mod = importlib.import_module(module_name)
-        cls = getattr(mod, implementation)
-        sig = inspect.signature(cls.__init__)
-        params = {}
-        for p_name, p in sig.parameters.items():
-            if p_name != "self":
-                params[p_name] = p.annotation
-        return params
+        Retrieve available resource options for a given key.
 
-    @staticmethod
-    def get_resource_options(resource_key: str) -> list[str]:
+        Args:
+            resource_key (str): The key representing the resource type (e.g., "embedding_model").
+
+        Returns:
+            list[str]: A list of available resource names.
         """
-        Dynamically parse the corresponding Python file in src/resources
-        to gather resource names, ignoring modules, classes, or private names.
-        """
-        module_name = f"src.resources.{resource_key}s"
+        module_name = os.path.join(self.resources_path, f"{resource_key}s")
+        module_name = module_name.replace("/", ".")
         try:
             mod = importlib.import_module(module_name)
         except ImportError:
@@ -75,26 +76,45 @@ class Controller:
 
         return resource_names
 
+    def get_constructor_params(self, component: str, implementation: str) -> dict:
+        """
+        Dynamically inspect the constructor to determine required params and types.
+        Return a dict: { 'param_name': 'param_type' }.
+        """
+        snake_name = camel_to_snake(implementation)
+        module_name = os.path.join(self.component_path, f"{component}s.{snake_name}")
+        module_name = module_name.replace("/", ".")
+        mod = importlib.import_module(module_name)
+        cls = getattr(mod, implementation)
+        sig = inspect.signature(cls.__init__)
+        params = {}
+        for p_name, p in sig.parameters.items():
+            if p_name != "self":
+                params[p_name] = p.annotation
+        return params
+
+    @staticmethod
     async def run_evaluation(
-            self,
             index_config: list[ComponentConfig],
             retrieval_config: list[ComponentConfig],
             qa_file_path: str
     ) -> dict:
         """
-        1) Builds a pipeline with indexing+retrieval config.
-        2) Runs indexing once (async).
-        3) Loads Q&A pairs from qa_file_path.
-        4) For each Q, runs retrieval in parallel, using data.actual_answer & data.evaluation.
-        5) Returns a summary dict with correctness, latencies, token usage, etc.
-        """
+        Run the evaluation pipeline with indexing and retrieval configurations.
 
+        Args:
+            index_config (list[ComponentConfig]): Indexing phase configuration.
+            retrieval_config (list[ComponentConfig]): Retrieval phase configuration.
+            qa_file_path (str): Path to the Q&A YAML file.
+
+        Returns:
+            dict: Summary of evaluation results including correctness, latencies, and token usage.
+        """
         # 1) Build pipeline with combined config
         config_dict = {
             "pipeline_indexing": [component.to_dict() for component in index_config],
             "pipeline_retrieval": [component.to_dict() for component in retrieval_config]
         }
-        print(config_dict)
 
         pipeline = Pipeline(config=config_dict)
 
@@ -104,7 +124,7 @@ class Controller:
         indexing_latency = time.perf_counter() - start_time
 
         # 3) Load Q&A pairs from file
-        qa_pairs = self._load_qa_file(qa_file_path)
+        qa_pairs = load_qa_file(qa_file_path)
         if not qa_pairs:
             return {
                 "correct_count": 0,
@@ -215,41 +235,3 @@ class Controller:
             "message": final_answer,
             "evaluation": eval_result,
         }
-
-    @staticmethod
-    def load_config() -> dict:
-        """Load the YAML config from 'config.yaml' in the main directory."""
-        config_file = os.path.join(os.getcwd(), "config.yaml")
-        if not os.path.exists(config_file):
-            raise FileNotFoundError("No config.yaml file found in the current working directory.")
-
-        with open(config_file, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
-
-    @staticmethod
-    def _load_qa_file(qa_file_path: str) -> list[dict]:
-        """Load Q&A pairs from a YAML or JSON (here YAML) file."""
-        import yaml
-        if not os.path.exists(qa_file_path):
-            return []
-        with open(qa_file_path, "r") as f:
-            return yaml.safe_load(f)
-
-    @staticmethod
-    def _find_class_name_in_file(file_path: str) -> str:
-        """
-        A simple approach to extract class name from a Python file.
-        """
-        with open(file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            match = re.search(r"class\s+([A-Z]\w+)", content)
-            if match:
-                return match.group(1)
-        return ""
-
-    @staticmethod
-    def _camel_to_snake(name: str) -> str:
-        return "".join(["_" + c.lower() if c.isupper() else c for c in name]).lstrip("_")
-
-
-

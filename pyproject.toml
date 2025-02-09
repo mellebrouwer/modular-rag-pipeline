@@ -1,3 +1,27 @@
+[project]
+name = "modular-rag-pipeline"
+version = "0.1.0"
+description = "This project implements a modular retrieval-augmented generation (RAG) pipeline using various components for data processing, vector storage, and answer generation."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "black>=25.1.0",
+    "flake8>=7.1.1",
+    "isort>=6.0.0",
+    "langchain~=0.3.15",
+    "langchain-chroma>=0.2.1",
+    "langchain-community>=0.3.17",
+    "langchain-experimental>=0.3.4",
+    "langchain-openai>=0.3.4",
+    "mypy>=1.15.0",
+    "pydantic~=2.10.5",
+    "pytest~=8.3.4",
+    "pytest-asyncio>=0.25.3",
+    "python-dotenv~=1.0.1",
+    "pyyaml~=6.0.2",
+    "streamlit~=1.41.1",
+]
+
 [tool.black]
 line-length = 100
 target-version = ['py39']

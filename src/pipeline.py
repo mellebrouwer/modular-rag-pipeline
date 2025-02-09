@@ -6,7 +6,7 @@ import yaml
 from pydantic import ValidationError
 
 from src.components.base_component import PipelineComponent
-from src.models import Data, Query
+from src.models import Data
 
 dotenv.load_dotenv()
 
@@ -70,27 +70,6 @@ class Pipeline:
 
         return component_class(**resolved_resources, **args)
 
-    @staticmethod
-    def _resolve_resource(resource_key: str, resource_value: str):
-        """Resolve a resource by dynamically importing it from the appropriate module."""
-        module_name = f"src.resources.{resource_key}s"
-        module = importlib.import_module(module_name)
-        return getattr(module, resource_value)
-
-    @staticmethod
-    def _camel_to_snake(camel_str: str) -> str:
-        """Convert CamelCase to snake_case."""
-        return "".join(["_" + c.lower() if c.isupper() else c for c in camel_str]).lstrip("_")
-
-    def _run_pipeline(self, data: Data, components: list[PipelineComponent]) -> Data:
-        """Run a series of components on the given data."""
-        for component in components:
-            try:
-                data = component.process(data)
-            except ValidationError as e:
-                raise ValueError(f"Invalid data passed to {component.__class__.__name__}: {e}")
-        return data
-
     def run_retrieval(self, data: Data) -> Data:
         """Run the retrieval pipeline."""
         return self._run_pipeline(data, self.retrieval_components)
@@ -105,13 +84,24 @@ class Pipeline:
         data = self.run_retrieval(data)
         return data
 
+    @staticmethod
+    def _resolve_resource(resource_key: str, resource_value: str):
+        """Resolve a resource by dynamically importing it from the appropriate module."""
+        module_name = f"src.resources.{resource_key}s"
+        module = importlib.import_module(module_name)
+        return getattr(module, resource_value)
 
-if __name__ == "__main__":
-    pipeline = Pipeline(config_path="config.yaml")
+    @staticmethod
+    def _camel_to_snake(camel_str: str) -> str:
+        """Convert CamelCase to snake_case."""
+        return "".join(["_" + c.lower() if c.isupper() else c for c in camel_str]).lstrip("_")
 
-    # Example for combined pipeline
-    query = Query(text="What is the best peanut butter? Answer in max 3 words.")
-    actual_answer = "Calvé Pindakaas"
-    data = Data(queries=[query], actual_answer=actual_answer)
-    combined_result = pipeline.run_combined(data)
-    print("Combined Result:", combined_result)
+    @staticmethod
+    def _run_pipeline(data: Data, components: list[PipelineComponent]) -> Data:
+        """Run a series of components on the given data."""
+        for component in components:
+            try:
+                data = component.process(data)
+            except ValidationError as e:
+                raise ValueError(f"Invalid data passed to {component.__class__.__name__}: {e}")
+        return data
