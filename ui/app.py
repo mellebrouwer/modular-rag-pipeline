@@ -300,7 +300,7 @@ def display_argument_field(component, field):
     """
     param_name = field.param_name
     param_type = field.param_type
-    args = component.args
+    args = component.args.copy()  # Make a copy to preserve existing args
     current_value = args.get(param_name, "")
     phase = component.phase
     name = component.name
@@ -320,9 +320,10 @@ def display_argument_field(component, field):
             key=f"{name}_{param_name}"
         )
 
-    # Update the argument if changed
+    # Update only the changed argument while preserving others
     if new_val != current_value:
-        component.args = {param_name: new_val}
+        args[param_name] = new_val  # Update specific argument
+        component.args = args  # Update entire args dictionary with all values
         st.session_state[phase][name] = component
         print(f"Updated {name} {param_name} to {new_val}")
         st.rerun()
