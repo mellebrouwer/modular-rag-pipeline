@@ -93,7 +93,7 @@ async def run_pipeline_test(pipeline, load_qa_pairs):
 
 @pytest.mark.asyncio
 async def test_pipeline(load_qa_pairs):
-    pipeline = Pipeline(config_path="config.yaml")
+    pipeline = Pipeline(config_path="test/configs/config.yaml")
     correct_count, incorrect_count, *_ = await run_pipeline_test(pipeline, load_qa_pairs)
     assert incorrect_count == 0, "Some answers were judged incorrect."
 
@@ -115,7 +115,7 @@ async def test_pipeline_with_configs(config_path, load_qa_pairs):
 ])
 @pytest.mark.asyncio
 async def test_pipeline_with_dynamic_configs(modifications, load_qa_pairs):
-    with open("config.yaml", "r") as f:
+    with open("test/configs/config.yaml", "r") as f:
         base_config = yaml.safe_load(f)
 
     config = copy.deepcopy(base_config)

@@ -1,6 +1,6 @@
 pipeline_retrieval:
   - component: query_transformer
-    implementation: MultiQuery
+    implementation: SingleQuery
   - component: router
     implementation: SimpleRouter
   - component: retriever
@@ -9,15 +9,12 @@ pipeline_retrieval:
       embedding_model: text_embedding_3_small
     args:
       top_k: 3
+      index_path: "db/chroma_db"
       collection_name: "catbank_text_embedding_3_small"
-#  - component: web_searcher
-#    implementation: MockWebSearcher
-#  - component: relational_db_retriever
-#    implementation: MockRelationalDbRetriever
   - component: prompt_builder
     implementation: SimplePromptBuilder
     resources:
-      prompt: system_short_answer
+      prompt: system_short_find_answer
   - component: answer_generator
     implementation: LcAnswerGenerator
     resources:
@@ -31,7 +28,7 @@ pipeline_indexing:
   - component: chunker
     implementation: LcSemanticChunker
     resources:
-      embedding_model: text_embedding_3_small
+      embedding_model: text_embedding_3_large
   - component: vector_store
     implementation: LcChromaStore
     resources:
