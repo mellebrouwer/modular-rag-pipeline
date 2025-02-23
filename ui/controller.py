@@ -201,37 +201,76 @@ class Controller:
         indexed_data = pipeline.run_indexing(data)
         latency = time.perf_counter() - start_time
 
-        # If sum_token_count is relevant at indexing stage, use it. Otherwise it might be 0.
-        token_count = indexed_data.sum_token_count()
-
         return {
             "latency": latency,
-            "token_count": token_count,
-            "message": "Indexing pipeline completed successfully!"
-
+            "token_count": indexed_data.sum_token_count(),
+            "message": "Indexing pipeline completed successfully!",
+            "data": indexed_data  # Add this to pass the indexed data to retrieval
         }
 
     @staticmethod
-    def run_retrieval_pipeline(config: list[ComponentConfig], query_text: str, actual_answer: str) -> dict:
+    def run_retrieval_pipeline(config: list[ComponentConfig], query_text: str, actual_answer: str, indexed_data=None) -> dict:
         """
         Runs the retrieval pipeline using updated_config and the user query.
         Returns a dict with latency, token_count, and the final answer.
         """
-        config_dict = {"pipeline_retrieval": config}
+        config_dict = {"pipeline_retrieval": [component.to_dict() for component in config]}
         pipeline = Pipeline(config=config_dict)
 
+        # Use the indexed data if provided, otherwise create new Data
         data = Data(queries=[Query(text=query_text)], actual_answer=actual_answer)
+        if indexed_data:
+            data.index = indexed_data.index
+
         start_time = time.perf_counter()
         retrieved_data = pipeline.run_retrieval(data)
         latency = time.perf_counter() - start_time
 
-        eval_result = retrieved_data.evaluation
-        token_count = retrieved_data.sum_token_count()
-        final_answer = retrieved_data.response.content or "No answer was produced by the retrieval pipeline."
-
         return {
             "latency": latency,
-            "token_count": token_count,
-            "message": final_answer,
-            "evaluation": eval_result,
+            "token_count": retrieved_data.sum_token_count(),
+            "message": retrieved_data.response.content or "No answer was produced by the retrieval pipeline.",
+            "evaluation": retrieved_data.evaluation,
+        }
+
+    @staticmethod
+    def run_pipeline_without_eval(index_config: list[ComponentConfig], retrieval_config: list[ComponentConfig], query: str) -> dict:
+        """
+        Run both indexing and retrieval pipelines, excluding the evaluator component.
+        
+        Args:
+            index_config (list[ComponentConfig]): Indexing phase configuration.
+            retrieval_config (list[ComponentConfig]): Retrieval phase configuration.
+            query (str): The query to process.
+            
+        Returns:
+            dict: Results including latencies, tokens, and the response.
+        """
+        # Filter out evaluator component
+        filtered_retrieval = [comp for comp in retrieval_config if comp.name != "evaluator"]
+        
+        # Run indexing
+        index_results = Controller.run_indexing_pipeline(index_config)
+        
+        if not query:
+            return {
+                "indexing_latency": index_results["latency"],
+                "indexing_tokens": index_results["token_count"],
+                "message": "No query provided."
+            }
+        
+        # Run retrieval with filtered config
+        retrieval_results = Controller.run_retrieval_pipeline(
+            filtered_retrieval,
+            query,
+            actual_answer="",
+            indexed_data=index_results["data"]
+        )
+        
+        return {
+            "indexing_latency": index_results["latency"],
+            "indexing_tokens": index_results["token_count"],
+            "retrieval_latency": retrieval_results["latency"],
+            "retrieval_tokens": retrieval_results["token_count"],
+            "message": retrieval_results["message"]
         }

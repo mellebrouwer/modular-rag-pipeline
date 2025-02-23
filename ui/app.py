@@ -20,10 +20,11 @@ def main():
     - Configures the Streamlit page.
     - Initializes and stores pipeline configurations (index and retrieval)
       in Streamlit's session state if they are not already present.
-    - Renders three tabs in the UI:
-        1. "Run" Tab: Allows the user to run the evaluation pipeline.
-        2. "Index" Tab: Allows configuration of the indexing phase.
-        3. "Retrieval" Tab: Allows configuration of the retrieval phase.
+    - Renders four tabs in the UI:
+        1. "Run" Tab: Allows the user to run individual queries through the pipeline.
+        2. "Batch" Tab: Allows the user to run the evaluation pipeline in batch mode.
+        3. "Index" Tab: Allows configuration of the indexing phase.
+        4. "Retrieval" Tab: Allows configuration of the retrieval phase.
     """
     st.set_page_config(page_title="Modular RAG Pipeline")
     st.title("Modular RAG Pipeline")
@@ -35,10 +36,13 @@ def main():
         st.session_state.retrieval = create_components_configs("retrieval")
 
     # Render the tabs
-    tab_run, tab_index, tab_retrieval,  = st.tabs(["Run", "Index", "Retrieval"])
+    tab_run, tab_batch, tab_index, tab_retrieval = st.tabs(["Run", "Batch", "Index", "Retrieval"])
 
     with tab_run:
         render_run_tab()
+
+    with tab_batch:
+        render_batch_tab()
 
     with tab_index:
         render_pipeline_config_tab("index")
@@ -47,17 +51,17 @@ def main():
         render_pipeline_config_tab("retrieval")
 
 
-def render_run_tab():
+def render_batch_tab():
     """
-    Render the Run tab in the Streamlit UI.
+    Render the Batch tab in the Streamlit UI.
     Allows the user to provide a Q&A YAML file path and triggers evaluation.
     """
     qa_file_path = st.text_input("Path to Q&A file (YAML)", "data/catbank/questions_answers.yaml")
-    if st.button("Run Evaluation"):
+    if st.button("Run Batch Evaluation"):
         results = asyncio.run(run_eval_wrapper(qa_file_path))
         if "message" in results:
             st.write(results["message"])
-        display_run_result(results)
+        display_batch_result(results)
 
 async def run_eval_wrapper(qa_path: str) -> dict:
     """
@@ -323,9 +327,9 @@ def display_argument_field(component, field):
         print(f"Updated {name} {param_name} to {new_val}")
         st.rerun()
 
-def display_run_result(results: dict):
+def display_batch_result(results: dict):
     """
-    Display the results of a run evaluation in Streamlit.
+    Display the results of a batch evaluation in Streamlit.
 
     Shows key metrics such as the number of correct and incorrect answers,
     indexing latency, average retrieval latency, and total tokens processed.
@@ -363,6 +367,34 @@ def display_run_result(results: dict):
     else:
         st.success(to_string)
 
+def render_run_tab():
+    """
+    Render the Run tab in the Streamlit UI.
+    Allows the user to input a query and run it through the pipeline.
+    """
+    query = st.text_area("Query", placeholder="Enter your query here...")
+    if st.button("Run Pipeline"):
+        results = controller.run_pipeline_without_eval(
+            st.session_state.index.values(),
+            st.session_state.retrieval.values(),
+            query
+        )
+        
+        # First display the response if we have it
+        if "retrieval_latency" in results:
+            with st.expander("Response", expanded=True):
+                st.write(results["message"])
+
+        # Then display the pipeline metrics
+        with st.expander("Pipeline metrics", expanded=True):
+            st.write("Indexing:")
+            st.write(f"- Latency: {results['indexing_latency']:.4f}s")
+            st.write(f"- Tokens: {results['indexing_tokens']}")
+            
+            if "retrieval_latency" in results:
+                st.write("\nRetrieval:")
+                st.write(f"- Latency: {results['retrieval_latency']:.4f}s")
+                st.write(f"- Tokens: {results['retrieval_tokens']}")
 
 if __name__ == "__main__":
     main()
