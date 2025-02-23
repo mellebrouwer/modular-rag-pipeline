@@ -1,24 +1,29 @@
 retrieval:
   - component: query_transformer
-    implementation: MultiQuery
+    implementation: SingleQuery
   - component: router
     implementation: SimpleRouter
   - component: retriever
     implementation: LcChromaRetriever
     resources:
-      embedding_model: text_embedding_3_large
+      embedding_model: text_embedding_3_small
     args:
-      top_k: 3
+      top_k: 1
       index_path: "db/chroma_db"
-      collection_name: "catbank_text_embedding_3_large"
+      collection_name: "bank_info"
 #  - component: web_searcher
 #    implementation: MockWebSearcher
-#  - component: relational_db_retriever
-#    implementation: MockRelationalDbRetriever
+  - component: relational_db_retriever
+    implementation: SqliteRetriever
+    resources:
+      llm: chat_gpt_4o
+      prompt: system_sql
+    args:
+      db_path: "data/bank_info/canteen_data.db"
   - component: prompt_builder
     implementation: SimplePromptBuilder
     resources:
-      prompt: system_short_answer
+      prompt: system_short_find_answer
   - component: answer_generator
     implementation: LcAnswerGenerator
     resources:
@@ -33,7 +38,7 @@ index:
   - component: document_loader
     implementation: TextLoader
     args:
-      directory: "data/catbank"
+      directory: "data/bank_info"
   - component: chunker
     implementation: FixedSizeChunker
     args:
@@ -41,7 +46,7 @@ index:
   - component: vector_store
     implementation: LcChromaStore
     resources:
-      embedding_model: text_embedding_3_large
+      embedding_model: text_embedding_3_small
     args:
       persist_directory: "db/chroma_db"
-      collection_name: "catbank_text_embedding_3_large"
+      collection_name: "bank_info"

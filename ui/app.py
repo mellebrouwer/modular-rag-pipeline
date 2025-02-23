@@ -51,6 +51,35 @@ def main():
         render_pipeline_config_tab("retrieval")
 
 
+def render_run_tab():
+    """
+    Render the Run tab in the Streamlit UI.
+    Allows the user to input a query and run it through the pipeline.
+    """
+    query = st.text_area("Query", placeholder="Enter your query here...", value="Where is Brian?")
+    if st.button("Run Pipeline"):
+        results = controller.run_pipeline_without_eval(
+            st.session_state.index.values(),
+            st.session_state.retrieval.values(),
+            query
+        )
+        
+        # First display the response if we have it
+        if "retrieval_latency" in results:
+            with st.expander("Response", expanded=True):
+                st.write(results["message"])
+
+        # Then display the pipeline metrics
+        with st.expander("Pipeline metrics", expanded=True):
+            st.write("Indexing:")
+            st.write(f"- Latency: {results['indexing_latency']:.4f}s")
+            st.write(f"- Tokens: {results['indexing_tokens']}")
+            
+            if "retrieval_latency" in results:
+                st.write("\nRetrieval:")
+                st.write(f"- Latency: {results['retrieval_latency']:.4f}s")
+                st.write(f"- Tokens: {results['retrieval_tokens']}")
+
 def render_batch_tab():
     """
     Render the Batch tab in the Streamlit UI.
@@ -241,10 +270,19 @@ def display_implementation_field(component, field):
 
     # When the user changes the implementation, update the component and rerun
     if chosen_implementation != implementation:
+        # Save the directory argument if it exists
+        directory_arg = component.args.get("directory", "")
+        
+        # Update the component with new implementation
         component.implementation = chosen_implementation
         component.constructor_params = controller.get_constructor_params(name, chosen_implementation)
         component.resources = {}
         component.args = {}
+        
+        # Restore the directory argument if this is a document loader
+        if name == "document_loader" and directory_arg:
+            component.args["directory"] = directory_arg
+            
         st.session_state[phase][name] = component
         print(f"Updated {name} implementation to {chosen_implementation}")
         st.rerun()
@@ -368,34 +406,6 @@ def display_batch_result(results: dict):
     else:
         st.success(to_string)
 
-def render_run_tab():
-    """
-    Render the Run tab in the Streamlit UI.
-    Allows the user to input a query and run it through the pipeline.
-    """
-    query = st.text_area("Query", placeholder="Enter your query here...")
-    if st.button("Run Pipeline"):
-        results = controller.run_pipeline_without_eval(
-            st.session_state.index.values(),
-            st.session_state.retrieval.values(),
-            query
-        )
-        
-        # First display the response if we have it
-        if "retrieval_latency" in results:
-            with st.expander("Response", expanded=True):
-                st.write(results["message"])
-
-        # Then display the pipeline metrics
-        with st.expander("Pipeline metrics", expanded=True):
-            st.write("Indexing:")
-            st.write(f"- Latency: {results['indexing_latency']:.4f}s")
-            st.write(f"- Tokens: {results['indexing_tokens']}")
-            
-            if "retrieval_latency" in results:
-                st.write("\nRetrieval:")
-                st.write(f"- Latency: {results['retrieval_latency']:.4f}s")
-                st.write(f"- Tokens: {results['retrieval_tokens']}")
 
 if __name__ == "__main__":
     main()

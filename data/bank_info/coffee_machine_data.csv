@@ -1,5 +1,4 @@
 Timestamp,Coffee Machine,User
-2025-02-22 16:22:26,Coffee Machine A01,Christopher
 2025-02-22 15:30:26,Coffee Machine A01,Stephen
 2025-02-22 15:12:26,Coffee Machine A01,William
 2025-02-22 14:45:26,Coffee Machine A01,Christopher
@@ -26,7 +25,6 @@ Timestamp,Coffee Machine,User
 2025-02-22 15:23:26,Coffee Machine A01,Laura
 2025-02-22 16:28:26,Coffee Machine A01,Sandra
 2025-02-22 14:45:26,Coffee Machine A01,George
-2025-02-22 14:51:26,Coffee Machine A01,Helen
 2025-02-22 16:51:26,Coffee Machine A01,George
 2025-02-22 15:59:26,Coffee Machine A01,Emma
 2025-02-22 17:28:26,Coffee Machine A01,Amanda
@@ -46,7 +44,6 @@ Timestamp,Coffee Machine,User
 2025-02-22 16:33:26,Coffee Machine A01,Nancy
 2025-02-22 16:09:26,Coffee Machine A01,Amanda
 2025-02-22 16:35:26,Coffee Machine A01,Emma
-2025-02-22 15:50:26,Coffee Machine A01,Michelle
 2025-02-22 17:44:26,Coffee Machine A01,Richard
 2025-02-22 16:07:26,Coffee Machine A01,Lisa
 2025-02-22 17:51:26,Coffee Machine A01,Richard
@@ -397,6 +394,5 @@ Timestamp,Coffee Machine,User
 2025-02-22 14:28:26,Coffee Machine C08,Marcus
 2025-02-22 17:44:26,Coffee Machine C08,Rachel
 2025-02-22 15:27:26,Coffee Machine C08,Linda
-2025-02-22 15:46:26,Coffee Machine C08,Robert
 2025-02-22 15:54:26,Coffee Machine C08,George
 2025-02-22 16:54:26,Coffee Machine C08,Emma

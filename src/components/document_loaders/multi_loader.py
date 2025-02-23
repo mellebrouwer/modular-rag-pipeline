@@ -4,7 +4,7 @@ from src.components.document_loaders.base_document_loader import BaseDocumentLoa
 from src.models import Document
 
 
-class CsvLoader(BaseDocumentLoader):
+class MultiLoader(BaseDocumentLoader):
     def __init__(self, directory: str):
         """
         Args:
@@ -19,8 +19,9 @@ class CsvLoader(BaseDocumentLoader):
 
         documents = []
         for filename in os.listdir(self.directory):
-            if filename.endswith(".csv"):
+            if filename.endswith(".csv") or filename.endswith(".txt"):
                 file_path = os.path.join(self.directory, filename)
+                print(f"Loading file: {file_path}")
                 with open(file_path, "r", encoding="utf-8") as file:
                     content = file.read()
                     documents.append(Document(content=content, meta_data={"filename": filename}))
