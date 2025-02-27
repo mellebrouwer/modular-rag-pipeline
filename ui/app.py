@@ -31,9 +31,9 @@ def main():
 
     # Store components in session state
     if "index" not in st.session_state:
-        st.session_state.index = create_components_configs("index")
+        st.session_state.index = create_components_configs("pipeline_indexing")
     if "retrieval" not in st.session_state:
-        st.session_state.retrieval = create_components_configs("retrieval")
+        st.session_state.retrieval = create_components_configs("pipeline_retrieval")
 
     # Render the tabs
     tab_run, tab_batch, tab_index, tab_retrieval = st.tabs(["Run", "Batch", "Index", "Retrieval"])

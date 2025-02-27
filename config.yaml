@@ -13,13 +13,10 @@ pipeline_retrieval:
       collection_name: "bank_info"
 #  - component: web_searcher
 #    implementation: MockWebSearcher
-  # - component: relational_db_retriever
-  #   implementation: SqliteRetriever
-  #   resources:
-  #     llm: chat_gpt_4o
-  #     prompt: system_sql
-  #   args:
-  #     db_path: "data/bank_info/canteen_data.db"
+  - component: relational_db_retriever
+    implementation: SqliteRetriever
+    args:
+      db_path: "data/bank_info/canteen_data.db"
   - component: prompt_builder
     implementation: SimplePromptBuilder
     resources:
