@@ -1,6 +1,6 @@
 # Modular RAG Pipeline
 
-This project implements a modular retrieval-augmented generation (RAG) pipeline using various components for data processing, vector storage, and answer generation.
+This project implements a modular retrieval-augmented generation (RAG) pipeline using various components for data processing, vector storage, and answer generation..
 
 ## Setup
 
